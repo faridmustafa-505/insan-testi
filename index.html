@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Bas Qazan</title>
     <style>
-        /* --- DİZAYN (CSS) --- */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -24,7 +23,6 @@
             overflow: hidden;
         }
 
-        /* Topbar */
         .topbar {
             background-color: #ffffff;
             padding: 15px 25px;
@@ -49,7 +47,6 @@
             color: #27ae60; 
         }
 
-        /* --- YENİ STATİSTİKA HİSSƏSİ --- */
         .stats-container {
             background-color: #ffffff;
             padding: 12px 20px;
@@ -78,7 +75,6 @@
             font-size: 20px;
         }
 
-        /* İkon rəngləri */
         .users-icon { background-color: #e3f2fd; color: #1976d2; }
         .money-icon { background-color: #e8f5e9; color: #2e7d32; }
 
@@ -101,7 +97,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Orta Hissə */
         .game-area {
             flex: 1;
             display: flex;
@@ -138,7 +133,6 @@
             animation: pulse 2s infinite;
         }
 
-        /* Footer */
         .footer {
             padding: 20px;
             background: white;
@@ -169,7 +163,6 @@
         }
         .withdraw-btn.active:active { transform: translateY(2px); }
 
-        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -196,7 +189,6 @@
         }
         .progress-fill { height: 100%; width: 0%; background: #f39c12; transition: width 0.3s; }
         
-        /* Paylaşım Düymələri */
         .share-buttons-container {
             display: flex;
             flex-direction: column;
@@ -282,26 +274,14 @@
     </div>
 
     <script>
-        // ==========================================
-        //  BURANI DƏYİŞ: STATİSTİKA RƏQƏMLƏRİ
-        // ==========================================
-        
-        // 1. Saytda görünəcək saxta istifadəçi sayı:
         const manualUsers = 3457; 
-        
-        // 2. Saytda görünəcək "Ödənilib" məbləği (Manatla):
         const manualPaid   = 1500; 
 
-        // ==========================================
-
-        // Statistikanı Ekrana Yazdıran Funksiya
         function renderStats() {
-            // Rəqəmləri 15,420 formatına salır
             document.getElementById('displayUserCount').innerText = manualUsers.toLocaleString('az-AZ');
             document.getElementById('displayPaidAmount').innerText = manualPaid.toLocaleString('az-AZ') + " ₼";
         }
 
-        // --- FIREBASE KONFİQURASİYASI ---
         const firebaseConfig = {
             apiKey: "AIzaSyB0IN8e5jbjXYj7Qw6gDqOZNM4G0CMcNw0",
             authDomain: "insan-testi.firebaseapp.com",
@@ -320,7 +300,6 @@
             console.error("Firebase Xətası:", e);
         }
 
-        // --- LOCAL STORAGE & DƏYİŞƏNLƏR ---
         let localBalance = parseFloat(localStorage.getItem('userBalance')) || 1.00;
         let shareCount = parseInt(localStorage.getItem('shareCount')) || 0;
         
@@ -333,9 +312,8 @@
         const shareText = "Sadəcə ekrana basaraq pul qazanıram. Balansım 5₼ oldu. Sən də yoxla, link burdadır 👇";
         const shareUrl = "https://bas-qazan.onrender.com";
 
-        // --- SƏHİFƏ YÜKLƏNƏNDƏ ---
         window.onload = function() {
-            renderStats(); // Statistikaları yazdır
+            renderStats(); 
             updateUI();
             checkVisit();
         };
@@ -349,7 +327,6 @@
             }
         }
 
-        // --- KLİK FUNKSİYASI ---
         function handleClick() {
             localBalance += 0.10;
             localStorage.setItem('userBalance', localBalance.toFixed(2));
@@ -360,7 +337,6 @@
             updateUI();
         }
 
-        // --- UI YENİLƏMƏ ---
         function updateUI() {
             balanceDisplay.textContent = localBalance.toFixed(2) + " ₼";
 
@@ -376,7 +352,6 @@
             }
         }
 
-        // --- MODAL & PAYLAŞIM ---
         function openWithdrawModal() {
             if (localBalance >= 5.00) {
                 modalOverlay.style.display = "flex";
