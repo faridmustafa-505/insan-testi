@@ -41,7 +41,7 @@
         .balance-label { font-size: 14px; color: #777; }
         .balance-amount { font-size: 28px; font-weight: 800; color: #27ae60; }
 
-        /* Qlobal Statistika (Kiçik küncdə) */
+        /* Qlobal Statistika */
         .stats-badge {
             font-size: 10px;
             color: #999;
@@ -103,13 +103,11 @@
             transition: background 0.3s;
         }
 
-        /* Aktiv düymə stili */
         .withdraw-btn.active {
             background-color: #27ae60;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
         }
-
         .withdraw-btn.active:active { transform: translateY(2px); }
 
         /* Modal */
@@ -138,10 +136,27 @@
             margin: 15px 0; overflow: hidden;
         }
         .progress-fill { height: 100%; width: 0%; background: #f39c12; transition: width 0.3s; }
-        .share-btn {
-            background-color: #25D366; color: white; padding: 12px;
-            border: none; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 10px;
+        
+        /* Paylaşım Düymələri */
+        .share-buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
         }
+
+        .share-btn {
+            color: white; padding: 12px;
+            border: none; border-radius: 8px; width: 100%; 
+            font-weight: bold; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+            font-size: 15px;
+        }
+
+        .btn-whatsapp { background-color: #25D366; }
+        .btn-telegram { background-color: #0088cc; }
+        
+        .btn-whatsapp:active, .btn-telegram:active { opacity: 0.8; transform: scale(0.98); }
 
         @keyframes pulse { 0% {opacity: 0.6;} 50% {opacity: 1;} 100% {opacity: 0.6;} }
     </style>
@@ -175,20 +190,27 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h2>Təbrik edirik! 🎉</h2>
-            <p>Çıxarışın təsdiqlənməsi üçün son addım: <br>Saytı <b>20 dostunla</b> paylaş.</p>
+            <p>Çıxarışın təsdiqlənməsi üçün son addım: <br>Saytı <b>20 dostunla</b> paylaş. Səhv paylaşım olunarsa blok olunacaqsınız!</p>
             
             <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
             <p id="shareStatus">0 / 20 Paylaşıldı</p>
 
-            <button class="share-btn" onclick="fakeShare()">WhatsApp-da Paylaş</button>
-            <br><br>
-            <button onclick="closeModal()" style="background:none; border:none; color:#999;">Bağla</button>
+            <div class="share-buttons-container">
+                <button class="share-btn btn-whatsapp" onclick="shareTo('whatsapp')">
+                    WhatsApp-da Paylaş
+                </button>
+                <button class="share-btn btn-telegram" onclick="shareTo('telegram')">
+                    Telegram-da Paylaş
+                </button>
+            </div>
+            
+            <br>
+            <button onclick="closeModal()" style="background:none; border:none; color:#999; margin-top:10px;">Bağla</button>
         </div>
     </div>
 
     <script>
-        // --- 1. FIREBASE KONFİQURASİYASI ---
-        // Sənin göndərdiyin REAL məlumatlar burdadır
+        // --- 1. FIREBASE KONFİQURASİYASI (Buranı DƏYİŞMƏYİ UNUTMA) ---
         const firebaseConfig = {
             apiKey: "AIzaSyB0IN8e5jbjXYj7Qw6gDqOZNM4G0CMcNw0",
             authDomain: "insan-testi.firebaseapp.com",
@@ -199,7 +221,6 @@
             appId: "1:168416057662:web:cb3c1e18318d6e27a0746f"
         };
 
-        // Firebase-i işə salırıq
         let db;
         try {
             firebase.initializeApp(firebaseConfig);
@@ -221,6 +242,10 @@
         const progressFill = document.getElementById('progressFill');
         const globalClickDisplay = document.getElementById('globalClicks');
 
+        // Paylaşılacaq Mətn
+        const shareText = "Sadəcə ekrana basaraq pul qazanıram. Balansım 5₼ oldu. Sən də yoxla, link burdadır 👇";
+        const shareUrl = "https://bas-qazan.onrender.com";
+
         // --- 3. SƏHİFƏ YÜKLƏNƏNDƏ ---
         window.onload = function() {
             updateUI();
@@ -228,45 +253,31 @@
             listenToGlobalStats();
         };
 
-        // İstifadəçi ilk dəfə girirsə
         function checkVisit() {
             if (!localStorage.getItem('hasVisited')) {
                 localStorage.setItem('hasVisited', 'true');
-                // Firebase: user_count + 1
                 if(db) {
-                    const userRef = db.ref('stats/user_count');
-                    userRef.transaction((current_value) => {
-                        return (current_value || 0) + 1;
-                    });
+                    db.ref('stats/user_count').transaction((val) => (val || 0) + 1);
                 }
             }
         }
 
-        // Global klikləri dinlə
         function listenToGlobalStats() {
             if(db) {
                 db.ref('stats/global_clicks').on('value', (snapshot) => {
-                    const val = snapshot.val() || 0;
-                    globalClickDisplay.innerText = `Total Clicks: ${val}`;
+                    globalClickDisplay.innerText = `Total Clicks: ${snapshot.val() || 0}`;
                 });
             }
         }
 
         // --- 4. KLİK FUNKSİYASI ---
         function handleClick() {
-            // 1. Local balansı artır
             localBalance += 0.10;
             localStorage.setItem('userBalance', localBalance.toFixed(2));
             
-            // 2. Firebase global click artır
             if(db) {
-                const clickRef = db.ref('stats/global_clicks');
-                clickRef.transaction((current_value) => {
-                    return (current_value || 0) + 1;
-                });
+                db.ref('stats/global_clicks').transaction((val) => (val || 0) + 1);
             }
-
-            // 3. UI yenilə
             updateUI();
         }
 
@@ -286,7 +297,7 @@
             }
         }
 
-        // --- 6. MODAL ---
+        // --- 6. MODAL & PAYLAŞIM ---
         function openWithdrawModal() {
             if (localBalance >= 5.00) {
                 modalOverlay.style.display = "flex";
@@ -298,20 +309,35 @@
             modalOverlay.style.display = "none";
         }
 
-        function fakeShare() {
+        function shareTo(platform) {
+            // Paylaşım Linklərinin Hazırlanması
+            let finalLink = "";
+            const encodedText = encodeURIComponent(shareText);
+            const encodedUrl = encodeURIComponent(shareUrl);
+
+            if (platform === 'whatsapp') {
+                finalLink = `https://api.whatsapp.com/send?text=${encodedText}%0A${encodedUrl}`;
+            } else if (platform === 'telegram') {
+                finalLink = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+            }
+
+            // Linki yeni pəncərədə aç
+            window.open(finalLink, '_blank');
+
+            // Sayğacı artır
+            incrementShare();
+        }
+
+        function incrementShare() {
             if (shareCount < 20) {
                 shareCount++;
                 localStorage.setItem('shareCount', shareCount);
-                
-                // WhatsApp-ı açmaq istəyirsənsə bu sətri aç:
-                // window.open("whatsapp://send?text=Sən də yoxla, pul qazanırsan!", "_blank");
-
                 updateShareUI();
 
                 if (shareCount === 20) {
                     setTimeout(() => {
-                        alert("Sorğunuz qəbul edildi! (Bu bir analiz testidir)");
-                    }, 500);
+                        alert("Sorğunuz uğurla qeydə alındı!");
+                    }, 1000);
                 }
             }
         }
@@ -322,8 +348,11 @@
             shareStatus.textContent = `${shareCount} / 20 Paylaşıldı`;
             
             if (shareCount >= 20) {
-                document.querySelector('.share-btn').textContent = "Təsdiqləndi ✅";
-                document.querySelector('.share-btn').style.background = "#27ae60";
+                document.querySelectorAll('.share-btn').forEach(btn => {
+                    btn.textContent = "Təsdiqləndi ✅ Zəhmət olmasa bir qədər gözləyin. Yoxlanarkən basmağa davam edə bilərsiniz!";
+                    btn.style.opacity = "0.5";
+                    btn.disabled = true;
+                });
             }
         }
     </script>
