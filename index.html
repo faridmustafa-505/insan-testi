@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Qazanc Analiz</title>
+    <style>
+        /* --- DİZAYN (CSS) --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Topbar */
+        .topbar {
+            background-color: #ffffff;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .balance-container {
+            text-align: left;
+        }
+
+        .balance-label { font-size: 14px; color: #777; }
+        .balance-amount { font-size: 28px; font-weight: 800; color: #27ae60; }
+
+        /* Qlobal Statistika (Kiçik küncdə) */
+        .stats-badge {
+            font-size: 10px;
+            color: #999;
+            text-align: right;
+        }
+
+        /* Orta Hissə */
+        .game-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .click-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: none;
+            background: radial-gradient(circle, #3498db 0%, #2980b9 100%);
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(41, 128, 185, 0.4);
+            transition: transform 0.1s;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .click-btn:active { transform: scale(0.95); }
+
+        .tap-hint {
+            margin-top: 20px;
+            color: #888;
+            font-size: 14px;
+            animation: pulse 2s infinite;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 20px;
+            background: white;
+            text-align: center;
+        }
+
+        .withdraw-btn {
+            width: 100%;
+            max-width: 400px;
+            padding: 16px;
+            background-color: #bdc3c7; /* Passiv rəng */
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: not-allowed;
+            transition: background 0.3s;
+        }
+
+        /* Aktiv düymə stili */
+        .withdraw-btn.active {
+            background-color: #27ae60;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .withdraw-btn.active:active { transform: translateY(2px); }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            justify-content: center; align-items: center;
+            padding: 20px;
+        }
+
+        .modal {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 350px;
+            width: 100%;
+        }
+        
+        .progress-bar {
+            height: 8px; background: #eee; border-radius: 4px;
+            margin: 15px 0; overflow: hidden;
+        }
+        .progress-fill { height: 100%; width: 0%; background: #f39c12; transition: width 0.3s; }
+        .share-btn {
+            background-color: #25D366; color: white; padding: 12px;
+            border: none; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 10px;
+        }
+
+        @keyframes pulse { 0% {opacity: 0.6;} 50% {opacity: 1;} 100% {opacity: 0.6;} }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="balance-container">
+            <div class="balance-label">Sizin Balans</div>
+            <div class="balance-amount" id="balanceDisplay">1.00 ₼</div>
+        </div>
+        <div class="stats-badge">
+            <div id="globalClicks">Total Clicks: ...</div>
+        </div>
+    </div>
+
+    <div class="game-area">
+        <button class="click-btn" onclick="handleClick()">QAZAN <br> (+0.10₼)</button>
+        <div class="tap-hint">Pulu artırmaq üçün düyməyə bas</div>
+    </div>
+
+    <div class="footer">
+        <button class="withdraw-btn" id="withdrawBtn" onclick="openWithdrawModal()">
+            Balansı çıxarmaq üçün 5₼ toplayın 🔒
+        </button>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>Təbrik edirik! 🎉</h2>
+            <p>Çıxarışın təsdiqlənməsi üçün son addım: <br>Saytı <b>20 dostunla</b> paylaş.</p>
+            
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <p id="shareStatus">0 / 20 Paylaşıldı</p>
+
+            <button class="share-btn" onclick="fakeShare()">WhatsApp-da Paylaş</button>
+            <br><br>
+            <button onclick="closeModal()" style="background:none; border:none; color:#999;">Bağla</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. FIREBASE KONFİQURASİYASI ---
+        // Sənin göndərdiyin REAL məlumatlar burdadır
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0IN8e5jbjXYj7Qw6gDqOZNM4G0CMcNw0",
+            authDomain: "insan-testi.firebaseapp.com",
+            databaseURL: "https://insan-testi-default-rtdb.firebaseio.com",
+            projectId: "insan-testi",
+            storageBucket: "insan-testi.firebasestorage.app",
+            messagingSenderId: "168416057662",
+            appId: "1:168416057662:web:cb3c1e18318d6e27a0746f"
+        };
+
+        // Firebase-i işə salırıq
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+            console.log("Firebase uğurla qoşuldu!");
+        } catch (e) {
+            console.error("Firebase Xətası:", e);
+        }
+
+        // --- 2. LOCAL STORAGE & DƏYİŞƏNLƏR ---
+        let localBalance = parseFloat(localStorage.getItem('userBalance')) || 1.00;
+        let shareCount = parseInt(localStorage.getItem('shareCount')) || 0;
+        
+        // Elementlər
+        const balanceDisplay = document.getElementById('balanceDisplay');
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const shareStatus = document.getElementById('shareStatus');
+        const progressFill = document.getElementById('progressFill');
+        const globalClickDisplay = document.getElementById('globalClicks');
+
+        // --- 3. SƏHİFƏ YÜKLƏNƏNDƏ ---
+        window.onload = function() {
+            updateUI();
+            checkVisit();
+            listenToGlobalStats();
+        };
+
+        // İstifadəçi ilk dəfə girirsə
+        function checkVisit() {
+            if (!localStorage.getItem('hasVisited')) {
+                localStorage.setItem('hasVisited', 'true');
+                // Firebase: user_count + 1
+                if(db) {
+                    const userRef = db.ref('stats/user_count');
+                    userRef.transaction((current_value) => {
+                        return (current_value || 0) + 1;
+                    });
+                }
+            }
+        }
+
+        // Global klikləri dinlə
+        function listenToGlobalStats() {
+            if(db) {
+                db.ref('stats/global_clicks').on('value', (snapshot) => {
+                    const val = snapshot.val() || 0;
+                    globalClickDisplay.innerText = `Total Clicks: ${val}`;
+                });
+            }
+        }
+
+        // --- 4. KLİK FUNKSİYASI ---
+        function handleClick() {
+            // 1. Local balansı artır
+            localBalance += 0.10;
+            localStorage.setItem('userBalance', localBalance.toFixed(2));
+            
+            // 2. Firebase global click artır
+            if(db) {
+                const clickRef = db.ref('stats/global_clicks');
+                clickRef.transaction((current_value) => {
+                    return (current_value || 0) + 1;
+                });
+            }
+
+            // 3. UI yenilə
+            updateUI();
+        }
+
+        // --- 5. UI YENİLƏMƏ ---
+        function updateUI() {
+            balanceDisplay.textContent = localBalance.toFixed(2) + " ₼";
+
+            if (localBalance >= 5.00) {
+                withdrawBtn.textContent = "Pulu Çıxar 💳";
+                withdrawBtn.classList.add('active');
+                withdrawBtn.disabled = false;
+            } else {
+                let diff = (5.00 - localBalance).toFixed(2);
+                withdrawBtn.textContent = `Balansı çıxarmaq üçün daha ${diff}₼ toplayın`;
+                withdrawBtn.classList.remove('active');
+                withdrawBtn.disabled = true;
+            }
+        }
+
+        // --- 6. MODAL ---
+        function openWithdrawModal() {
+            if (localBalance >= 5.00) {
+                modalOverlay.style.display = "flex";
+                updateShareUI();
+            }
+        }
+
+        function closeModal() {
+            modalOverlay.style.display = "none";
+        }
+
+        function fakeShare() {
+            if (shareCount < 20) {
+                shareCount++;
+                localStorage.setItem('shareCount', shareCount);
+                
+                // WhatsApp-ı açmaq istəyirsənsə bu sətri aç:
+                // window.open("whatsapp://send?text=Sən də yoxla, pul qazanırsan!", "_blank");
+
+                updateShareUI();
+
+                if (shareCount === 20) {
+                    setTimeout(() => {
+                        alert("Sorğunuz qəbul edildi! (Bu bir analiz testidir)");
+                    }, 500);
+                }
+            }
+        }
+
+        function updateShareUI() {
+            let percentage = (shareCount / 20) * 100;
+            progressFill.style.width = percentage + "%";
+            shareStatus.textContent = `${shareCount} / 20 Paylaşıldı`;
+            
+            if (shareCount >= 20) {
+                document.querySelector('.share-btn').textContent = "Təsdiqləndi ✅";
+                document.querySelector('.share-btn').style.background = "#27ae60";
+            }
+        }
+    </script>
+</body>
+</html>
