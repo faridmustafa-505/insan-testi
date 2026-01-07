@@ -19,35 +19,86 @@
             background-color: #f0f2f5;
             display: flex;
             flex-direction: column;
-            /* Mobildə real ekran hündürlüyü üçün vacib düzəliş: */
             height: 100vh; 
             height: 100dvh; 
             overflow: hidden;
         }
 
-        /* Topbar - YENİLƏNDİ */
+        /* Topbar */
         .topbar {
             background-color: #ffffff;
-            padding: 20px 25px; /* Kənarlardan boşluq */
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 25px;
             z-index: 10;
             display: flex;
-            justify-content: space-between; /* Yazını sola, balansı sağa atır */
-            align-items: center; /* Hündürlüyə görə mərkəzləyir */
+            justify-content: space-between;
+            align-items: center;
             flex-shrink: 0;
-            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-top: calc(15px + env(safe-area-inset-top));
+            border-bottom: 1px solid #eee;
         }
 
         .balance-label { 
-            font-size: 18px; 
+            font-size: 16px; 
             font-weight: 600;
-            color: #333; 
+            color: #555; 
         }
         
         .balance-amount { 
-            font-size: 24px; 
+            font-size: 22px; 
             font-weight: 800; 
             color: #27ae60; 
+        }
+
+        /* --- YENİ STATİSTİKA HİSSƏSİ --- */
+        .stats-container {
+            background-color: #ffffff;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 9;
+        }
+
+        .stat-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-icon-bg {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+
+        /* İkon rəngləri */
+        .users-icon { background-color: #e3f2fd; color: #1976d2; }
+        .money-icon { background-color: #e8f5e9; color: #2e7d32; }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 800;
+            color: #333;
+        }
+
+        .stat-title {
+            font-size: 11px;
+            color: #888;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* Orta Hissə */
@@ -94,6 +145,7 @@
             text-align: center;
             flex-shrink: 0;
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
         }
 
         .withdraw-btn {
@@ -178,6 +230,24 @@
         <div class="balance-amount" id="balanceDisplay">1.00 ₼</div>
     </div>
 
+    <div class="stats-container">
+        <div class="stat-box">
+            <div class="stat-icon-bg users-icon">👥</div>
+            <div class="stat-info">
+                <div class="stat-value" id="displayUserCount">0</div>
+                <div class="stat-title">İstifadəçi</div>
+            </div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-icon-bg money-icon">💸</div>
+            <div class="stat-info">
+                <div class="stat-value" id="displayPaidAmount">0 ₼</div>
+                <div class="stat-title">Ödənilib</div>
+            </div>
+        </div>
+    </div>
+
     <div class="game-area">
         <button class="click-btn" onclick="handleClick()">QAZAN <br> (+0.10₼)</button>
         <div class="tap-hint">Pulu artırmaq üçün düyməyə bas</div>
@@ -212,7 +282,26 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE KONFİQURASİYASI ---
+        // ==========================================
+        //  BURANI DƏYİŞ: STATİSTİKA RƏQƏMLƏRİ
+        // ==========================================
+        
+        // 1. Saytda görünəcək saxta istifadəçi sayı:
+        const manualUsers = 3457; 
+        
+        // 2. Saytda görünəcək "Ödənilib" məbləği (Manatla):
+        const manualPaid   = 1500; 
+
+        // ==========================================
+
+        // Statistikanı Ekrana Yazdıran Funksiya
+        function renderStats() {
+            // Rəqəmləri 15,420 formatına salır
+            document.getElementById('displayUserCount').innerText = manualUsers.toLocaleString('az-AZ');
+            document.getElementById('displayPaidAmount').innerText = manualPaid.toLocaleString('az-AZ') + " ₼";
+        }
+
+        // --- FIREBASE KONFİQURASİYASI ---
         const firebaseConfig = {
             apiKey: "AIzaSyB0IN8e5jbjXYj7Qw6gDqOZNM4G0CMcNw0",
             authDomain: "insan-testi.firebaseapp.com",
@@ -227,32 +316,28 @@
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
-            console.log("Firebase uğurla qoşuldu!");
         } catch (e) {
             console.error("Firebase Xətası:", e);
         }
 
-        // --- 2. LOCAL STORAGE & DƏYİŞƏNLƏR ---
+        // --- LOCAL STORAGE & DƏYİŞƏNLƏR ---
         let localBalance = parseFloat(localStorage.getItem('userBalance')) || 1.00;
         let shareCount = parseInt(localStorage.getItem('shareCount')) || 0;
         
-        // Elementlər
         const balanceDisplay = document.getElementById('balanceDisplay');
         const withdrawBtn = document.getElementById('withdrawBtn');
         const modalOverlay = document.getElementById('modalOverlay');
         const shareStatus = document.getElementById('shareStatus');
         const progressFill = document.getElementById('progressFill');
-        // 'globalClicks' elementi silindiyi üçün JS-dən də çıxarıldı.
 
-        // Paylaşılacaq Mətn
         const shareText = "Sadəcə ekrana basaraq pul qazanıram. Balansım 5₼ oldu. Sən də yoxla, link burdadır 👇";
         const shareUrl = "https://bas-qazan.onrender.com";
 
-        // --- 3. SƏHİFƏ YÜKLƏNƏNDƏ ---
+        // --- SƏHİFƏ YÜKLƏNƏNDƏ ---
         window.onload = function() {
+            renderStats(); // Statistikaları yazdır
             updateUI();
             checkVisit();
-            // listenToGlobalStats funksiyası silindi, çünki ekranda göstərmirik.
         };
 
         function checkVisit() {
@@ -264,19 +349,18 @@
             }
         }
 
-        // --- 4. KLİK FUNKSİYASI ---
+        // --- KLİK FUNKSİYASI ---
         function handleClick() {
             localBalance += 0.10;
             localStorage.setItem('userBalance', localBalance.toFixed(2));
             
-            // Global click hələ də bazaya yazılsın, amma ekranda görünməsin:
             if(db) {
                 db.ref('stats/global_clicks').transaction((val) => (val || 0) + 1);
             }
             updateUI();
         }
 
-        // --- 5. UI YENİLƏMƏ ---
+        // --- UI YENİLƏMƏ ---
         function updateUI() {
             balanceDisplay.textContent = localBalance.toFixed(2) + " ₼";
 
@@ -292,7 +376,7 @@
             }
         }
 
-        // --- 6. MODAL & PAYLAŞIM ---
+        // --- MODAL & PAYLAŞIM ---
         function openWithdrawModal() {
             if (localBalance >= 5.00) {
                 modalOverlay.style.display = "flex";
