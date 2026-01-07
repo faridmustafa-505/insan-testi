@@ -25,42 +25,39 @@
             overflow: hidden;
         }
 
-        /* Topbar */
+        /* Topbar - YENİLƏNDİ */
         .topbar {
             background-color: #ffffff;
-            padding: 20px;
-            text-align: center;
+            padding: 20px 25px; /* Kənarlardan boşluq */
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 10;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0; /* Sıxılmanın qarşısını alır */
-            padding-top: env(safe-area-inset-top); /* iPhone "notch" hissəsi üçün */
+            justify-content: space-between; /* Yazını sola, balansı sağa atır */
+            align-items: center; /* Hündürlüyə görə mərkəzləyir */
+            flex-shrink: 0;
+            padding-top: calc(20px + env(safe-area-inset-top));
         }
 
-        .balance-container {
-            text-align: left;
+        .balance-label { 
+            font-size: 18px; 
+            font-weight: 600;
+            color: #333; 
         }
-
-        .balance-label { font-size: 14px; color: #777; }
-        .balance-amount { font-size: 28px; font-weight: 800; color: #27ae60; }
-
-        /* Qlobal Statistika */
-        .stats-badge {
-            font-size: 10px;
-            color: #999;
-            text-align: right;
+        
+        .balance-amount { 
+            font-size: 24px; 
+            font-weight: 800; 
+            color: #27ae60; 
         }
 
         /* Orta Hissə */
         .game-area {
-            flex: 1; /* Boş qalan bütün yeri tutur */
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            overflow-y: auto; /* Ekran çox balaca olarsa orta hissə sürüşə bilsin */
+            overflow-y: auto;
             padding: 10px;
         }
 
@@ -95,8 +92,7 @@
             padding: 20px;
             background: white;
             text-align: center;
-            flex-shrink: 0; /* Footer heç vaxt itməsin */
-            /* iPhone alt hissə (Home Bar) üçün qoruma sahəsi: */
+            flex-shrink: 0;
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
         }
 
@@ -104,7 +100,7 @@
             width: 100%;
             max-width: 400px;
             padding: 16px;
-            background-color: #bdc3c7; /* Passiv rəng */
+            background-color: #bdc3c7;
             color: white;
             border: none;
             border-radius: 12px;
@@ -178,13 +174,8 @@
 <body>
 
     <div class="topbar">
-        <div class="balance-container">
-            <div class="balance-label">Sizin Balans</div>
-            <div class="balance-amount" id="balanceDisplay">1.00 ₼</div>
-        </div>
-        <div class="stats-badge">
-            <div id="globalClicks">Total Clicks: ...</div>
-        </div>
+        <div class="balance-label">Sizin Balans</div>
+        <div class="balance-amount" id="balanceDisplay">1.00 ₼</div>
     </div>
 
     <div class="game-area">
@@ -221,7 +212,7 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE KONFİQURASİYASI (Buranı DƏYİŞMƏYİ UNUTMA) ---
+        // --- 1. FIREBASE KONFİQURASİYASI ---
         const firebaseConfig = {
             apiKey: "AIzaSyB0IN8e5jbjXYj7Qw6gDqOZNM4G0CMcNw0",
             authDomain: "insan-testi.firebaseapp.com",
@@ -251,7 +242,7 @@
         const modalOverlay = document.getElementById('modalOverlay');
         const shareStatus = document.getElementById('shareStatus');
         const progressFill = document.getElementById('progressFill');
-        const globalClickDisplay = document.getElementById('globalClicks');
+        // 'globalClicks' elementi silindiyi üçün JS-dən də çıxarıldı.
 
         // Paylaşılacaq Mətn
         const shareText = "Sadəcə ekrana basaraq pul qazanıram. Balansım 5₼ oldu. Sən də yoxla, link burdadır 👇";
@@ -261,7 +252,7 @@
         window.onload = function() {
             updateUI();
             checkVisit();
-            listenToGlobalStats();
+            // listenToGlobalStats funksiyası silindi, çünki ekranda göstərmirik.
         };
 
         function checkVisit() {
@@ -273,19 +264,12 @@
             }
         }
 
-        function listenToGlobalStats() {
-            if(db) {
-                db.ref('stats/global_clicks').on('value', (snapshot) => {
-                    globalClickDisplay.innerText = `Total Clicks: ${snapshot.val() || 0}`;
-                });
-            }
-        }
-
         // --- 4. KLİK FUNKSİYASI ---
         function handleClick() {
             localBalance += 0.10;
             localStorage.setItem('userBalance', localBalance.toFixed(2));
             
+            // Global click hələ də bazaya yazılsın, amma ekranda görünməsin:
             if(db) {
                 db.ref('stats/global_clicks').transaction((val) => (val || 0) + 1);
             }
@@ -321,7 +305,6 @@
         }
 
         function shareTo(platform) {
-            // Paylaşım Linklərinin Hazırlanması
             let finalLink = "";
             const encodedText = encodeURIComponent(shareText);
             const encodedUrl = encodeURIComponent(shareUrl);
@@ -332,10 +315,7 @@
                 finalLink = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
             }
 
-            // Linki yeni pəncərədə aç
             window.open(finalLink, '_blank');
-
-            // Sayğacı artır
             incrementShare();
         }
 
@@ -369,4 +349,3 @@
     </script>
 </body>
 </html>
-
