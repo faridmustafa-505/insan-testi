@@ -241,7 +241,7 @@
     </div>
 
     <div class="game-area">
-        <button class="click-btn" onclick="handleClick()">QAZAN <br> (+0.10₼)</button>
+        <button class="click-btn" onclick="handleClick()">QAZAN <br> (+0.05₼)</button>
         <div class="tap-hint">Pulu artırmaq üçün düyməyə bas</div>
     </div>
 
@@ -328,7 +328,7 @@
         }
 
         function handleClick() {
-            localBalance += 0.10;
+            localBalance += 0.05;
             localStorage.setItem('userBalance', localBalance.toFixed(2));
             
             if(db) {
@@ -408,4 +408,5 @@
     </script>
 </body>
 </html>
+
 
