@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Bas Qazan</title>
+    <script>
+        if (window.location.hostname.includes("onrender.com")) {
+            window.location.replace("https://basqazan.click");
+        }
+    </script>
     <style>
         * {
             box-sizing: border-box;
@@ -118,13 +123,21 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 10px 25px rgba(41, 128, 185, 0.4);
-            transition: transform 0.1s;
+            transition: transform 0.1s, background 0.3s;
             outline: none;
             -webkit-tap-highlight-color: transparent;
             margin-bottom: 10px;
         }
 
         .click-btn:active { transform: scale(0.95); }
+        
+        /* Deaktiv düymə stili */
+        .click-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         .tap-hint {
             margin-top: 20px;
@@ -205,11 +218,150 @@
         }
 
         .btn-whatsapp { background-color: #25D366; }
-        .btn-telegram { background-color: #0088cc; }
         
-        .btn-whatsapp:active, .btn-telegram:active { opacity: 0.8; transform: scale(0.98); }
+        .btn-youtube {
+            background-color: #FF0000;
+            margin-bottom: 10px;
+        }
+        
+        .btn-whatsapp:active, .btn-youtube:active { opacity: 0.8; transform: scale(0.98); }
 
         @keyframes pulse { 0% {opacity: 0.6;} 50% {opacity: 1;} 100% {opacity: 0.6;} }
+
+        /* --- CHAT STYLES --- */
+        .chat-toggle-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #3498db;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 90;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+        }
+        .chat-toggle-btn:active { transform: scale(0.9); }
+
+        .chat-container {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            z-index: 91;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #3498db;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message-bubble {
+            background: #eee;
+            padding: 8px 12px;
+            border-radius: 10px;
+            max-width: 85%;
+        }
+        .message-bubble.mine {
+            background: #d1f2eb;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .message-author {
+            font-size: 10px;
+            color: #777;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+        .message-time {
+            font-size: 9px;
+            color: #999;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        .chat-input-wrapper {
+            padding: 10px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 5px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .chat-send-btn {
+            padding: 0 15px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .name-entry-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 5;
+        }
+        .name-entry-overlay input {
+            padding: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .name-entry-overlay button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -241,8 +393,30 @@
     </div>
 
     <div class="game-area">
-        <button class="click-btn" onclick="handleClick()">QAZAN <br> (+0.05₼)</button>
-        <div class="tap-hint">Pulu artırmaq üçün düyməyə bas</div>
+        <button class="click-btn" id="clickBtn" onclick="handleClick()">QAZAN <br> (+0.05₼)</button>
+        <div class="tap-hint" id="tapHint">Pulu artırmaq üçün düyməyə bas</div>
+    </div>
+
+    <button class="chat-toggle-btn" onclick="toggleChat()">💬</button>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <span>Canlı Çat</span>
+            <span style="cursor:pointer" onclick="toggleChat()">✖</span>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            </div>
+        <div class="chat-input-wrapper">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Mesaj yaz...">
+            <button class="chat-send-btn" onclick="sendChatMessage()">></button>
+        </div>
+
+        <div class="name-entry-overlay" id="nameOverlay">
+            <h3>Adınızı daxil edin</h3>
+            <br>
+            <input type="text" id="userNameInput" placeholder="Adınız...">
+            <button onclick="saveChatName()">Başla</button>
+        </div>
     </div>
 
     <div class="footer">
@@ -260,11 +434,12 @@
             <p id="shareStatus">0 / 20 Paylaşıldı</p>
 
             <div class="share-buttons-container">
+                <button class="share-btn btn-youtube" onclick="openYoutube()">
+                    Youtube Kanalına Abunə Ol
+                </button>
+
                 <button class="share-btn btn-whatsapp" onclick="shareTo('whatsapp')">
                     WhatsApp-da Paylaş
-                </button>
-                <button class="share-btn btn-telegram" onclick="shareTo('telegram')">
-                    Telegram-da Paylaş
                 </button>
             </div>
             
@@ -274,8 +449,8 @@
     </div>
 
     <script>
-        const manualUsers = 4517; 
-        const manualPaid   = 1800; 
+        const manualUsers = 4550; 
+        const manualPaid   = 2000; 
 
         function renderStats() {
             document.getElementById('displayUserCount').innerText = manualUsers.toLocaleString('az-AZ');
@@ -305,17 +480,29 @@
         
         const balanceDisplay = document.getElementById('balanceDisplay');
         const withdrawBtn = document.getElementById('withdrawBtn');
+        const clickBtn = document.getElementById('clickBtn');
+        const tapHint = document.getElementById('tapHint');
         const modalOverlay = document.getElementById('modalOverlay');
         const shareStatus = document.getElementById('shareStatus');
         const progressFill = document.getElementById('progressFill');
 
+        // Chat Variables
+        const chatContainer = document.getElementById('chatContainer');
+        const nameOverlay = document.getElementById('nameOverlay');
+        const chatMessages = document.getElementById('chatMessages');
+        const userNameInput = document.getElementById('userNameInput');
+        const chatInput = document.getElementById('chatInput');
+        let chatName = localStorage.getItem('chatName');
+
         const shareText = "Sadəcə ekrana basaraq pul qazanıram. Balansım 5₼ oldu. Sən də yoxla, link burdadır 👇";
         const shareUrl = "https://bas-qazan.onrender.com";
+        const youtubeUrl = "https://www.youtube.com/channel/UCzjaf1aSpkvY6hlXrfsWbwg";
 
         window.onload = function() {
             renderStats(); 
             updateUI();
             checkVisit();
+            initChat(); 
         };
 
         function checkVisit() {
@@ -328,6 +515,8 @@
         }
 
         function handleClick() {
+            if (localBalance >= 5.00) return; // Əlavə qoruma
+
             localBalance += 0.05;
             localStorage.setItem('userBalance', localBalance.toFixed(2));
             
@@ -341,14 +530,24 @@
             balanceDisplay.textContent = localBalance.toFixed(2) + " ₼";
 
             if (localBalance >= 5.00) {
+                // Pul çıxar aktiv oldu
                 withdrawBtn.textContent = "Pulu Çıxar 💳";
                 withdrawBtn.classList.add('active');
                 withdrawBtn.disabled = false;
+                
+                // Oyunu dondur
+                clickBtn.disabled = true;
+                clickBtn.innerText = "Hədəfə\nÇatdınız! 🏁";
+                clickBtn.style.background = "#7f8c8d"; // Boz rəng
+                tapHint.innerText = "Balansı çıxarmaq üçün aşağıdakı düyməyə basın";
+                
             } else {
                 let diff = (5.00 - localBalance).toFixed(2);
                 withdrawBtn.textContent = `Balansı çıxarmaq üçün daha ${diff}₼ toplayın`;
                 withdrawBtn.classList.remove('active');
                 withdrawBtn.disabled = true;
+                
+                clickBtn.disabled = false;
             }
         }
 
@@ -363,6 +562,10 @@
             modalOverlay.style.display = "none";
         }
 
+        function openYoutube() {
+            window.open(youtubeUrl, '_blank');
+        }
+
         function shareTo(platform) {
             let finalLink = "";
             const encodedText = encodeURIComponent(shareText);
@@ -370,12 +573,12 @@
 
             if (platform === 'whatsapp') {
                 finalLink = `https://api.whatsapp.com/send?text=${encodedText}%0A${encodedUrl}`;
-            } else if (platform === 'telegram') {
-                finalLink = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
             }
 
-            window.open(finalLink, '_blank');
-            incrementShare();
+            if (finalLink) {
+                window.open(finalLink, '_blank');
+                incrementShare();
+            }
         }
 
         function incrementShare() {
@@ -399,14 +602,113 @@
             
             if (shareCount >= 20) {
                 document.querySelectorAll('.share-btn').forEach(btn => {
-                    btn.textContent = "Təsdiqləndi ✅ Zəhmət olmasa bir qədər gözləyin. Yoxlanarkən basmağa davam edə bilərsiniz!";
+                    btn.textContent = "Təsdiqləndi ✅ Zəhmət olmasa bir qədər gözləyin. 24 saata qədər uzana bilər! Aktiv olmağa davam edin! Çatda insanlarla danışa bilərsiniz!";
                     btn.style.opacity = "0.5";
                     btn.disabled = true;
                 });
             }
         }
+
+        // --- CHAT FUNCTIONS ---
+
+        function toggleChat() {
+            if (chatContainer.style.display === "flex") {
+                chatContainer.style.display = "none";
+            } else {
+                chatContainer.style.display = "flex";
+                checkChatName();
+                scrollToBottom();
+            }
+        }
+
+        function checkChatName() {
+            if (chatName) {
+                nameOverlay.style.display = "none";
+            } else {
+                nameOverlay.style.display = "flex";
+            }
+        }
+
+        function saveChatName() {
+            const name = userNameInput.value.trim();
+            if (name.length > 0) {
+                chatName = name;
+                localStorage.setItem('chatName', chatName);
+                nameOverlay.style.display = "none";
+            } else {
+                alert("Zəhmət olmasa ad daxil edin.");
+            }
+        }
+
+        function sendChatMessage() {
+            const msg = chatInput.value.trim();
+            if (msg.length > 0 && chatName) {
+                if (db) {
+                    // Mesaj nömrəsini (ID) artırır
+                    db.ref('stats/last_message_id').transaction((currentId) => {
+                        return (currentId || 0) + 1;
+                    }, (error, committed, snapshot) => {
+                        if (committed) {
+                            const newId = snapshot.val();
+                            // Yeni ID ilə mesajı yazır (1, 2, 3...)
+                            db.ref('messages/' + newId).set({
+                                nickname: chatName,
+                                message: msg,
+                                timestamp: Date.now()
+                            });
+                            chatInput.value = "";
+                        }
+                    });
+                }
+            }
+        }
+
+        function initChat() {
+            if (db) {
+                // Son 50 mesajı yüklə
+                db.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
+                    const data = snapshot.val();
+                    if(data) {
+                        renderMessage(data);
+                    }
+                });
+            }
+        }
+
+        function renderMessage(data) {
+            const div = document.createElement('div');
+            const isMine = data.nickname === chatName;
+            
+            // Vaxtı formatla (HH:MM)
+            const date = new Date(data.timestamp);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+
+            div.className = `message-bubble ${isMine ? 'mine' : ''}`;
+            div.innerHTML = `
+                <div class="message-author">${escapeHtml(data.nickname)}</div>
+                ${escapeHtml(data.message)}
+                <div class="message-time">${timeString}</div>
+            `;
+            
+            chatMessages.appendChild(div);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
     </script>
 </body>
 </html>
-
-
