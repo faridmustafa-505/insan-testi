@@ -334,34 +334,6 @@
             cursor: pointer;
         }
 
-        .name-entry-overlay {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(255,255,255,0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            z-index: 5;
-        }
-        .name-entry-overlay input {
-            padding: 10px;
-            margin-bottom: 10px;
-            width: 100%;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .name-entry-overlay button {
-            padding: 10px 20px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -409,13 +381,6 @@
         <div class="chat-input-wrapper">
             <input type="text" class="chat-input" id="chatInput" placeholder="Mesaj yaz...">
             <button class="chat-send-btn" onclick="sendChatMessage()">></button>
-        </div>
-
-        <div class="name-entry-overlay" id="nameOverlay">
-            <h3>Adınızı daxil edin</h3>
-            <br>
-            <input type="text" id="userNameInput" placeholder="Adınız...">
-            <button onclick="saveChatName()">Başla</button>
         </div>
     </div>
 
@@ -488,11 +453,17 @@
 
         // Chat Variables
         const chatContainer = document.getElementById('chatContainer');
-        const nameOverlay = document.getElementById('nameOverlay');
         const chatMessages = document.getElementById('chatMessages');
-        const userNameInput = document.getElementById('userNameInput');
         const chatInput = document.getElementById('chatInput');
         let chatName = localStorage.getItem('chatName');
+
+        // Random Ad Generasiyası (ƏGƏR YOXDURSA)
+        if (!chatName) {
+            // 100000 ilə 999999 arasında random rəqəm
+            const randomNum = Math.floor(100000 + Math.random() * 900000);
+            chatName = "user" + randomNum;
+            localStorage.setItem('chatName', chatName);
+        }
 
         const shareText = "Sadəcə ekrana basaraq pul qazanıram. Balansım 5₼ oldu. Sən də yoxla, link burdadır 👇";
         const shareUrl = "https://basqazan.click";
@@ -616,27 +587,8 @@
                 chatContainer.style.display = "none";
             } else {
                 chatContainer.style.display = "flex";
-                checkChatName();
+                // Artıq ad yoxlanışı burda lazım deyil, yüklənəndə yoxlanılır
                 scrollToBottom();
-            }
-        }
-
-        function checkChatName() {
-            if (chatName) {
-                nameOverlay.style.display = "none";
-            } else {
-                nameOverlay.style.display = "flex";
-            }
-        }
-
-        function saveChatName() {
-            const name = userNameInput.value.trim();
-            if (name.length > 0) {
-                chatName = name;
-                localStorage.setItem('chatName', chatName);
-                nameOverlay.style.display = "none";
-            } else {
-                alert("Zəhmət olmasa ad daxil edin.");
             }
         }
 
