@@ -325,6 +325,13 @@
             outline: none;
         }
 
+        /* Deaktiv input stili */
+        .chat-input:disabled {
+            background-color: #f0f0f0;
+            color: #888;
+            cursor: not-allowed;
+        }
+
         .chat-send-btn {
             padding: 0 15px;
             background: #2ecc71;
@@ -332,6 +339,12 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .chat-send-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
         }
 
     </style>
@@ -380,7 +393,7 @@
             </div>
         <div class="chat-input-wrapper">
             <input type="text" class="chat-input" id="chatInput" placeholder="Mesaj yaz...">
-            <button class="chat-send-btn" onclick="sendChatMessage()">></button>
+            <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()">></button>
         </div>
     </div>
 
@@ -393,7 +406,9 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h2>Təbrik edirik! 🎉</h2>
-            <p>Çıxarışın təsdiqlənməsi üçün son addım: <br>Saytı <b>20 dostunla</b> paylaş. Səhv paylaşım olunarsa blok olunacaqsınız!</p>
+            <div id="modal-instructions">
+                <p>Pulu çıxarmaq üçün: <br>Sayta <b>20 dostunu</b> dəvət et. Dəvət edilən hərkəs gəldikdən sonra pulu alacaqsınız!</p>
+            </div>
             
             <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
             <p id="shareStatus">0 / 20 Paylaşıldı</p>
@@ -414,8 +429,8 @@
     </div>
 
     <script>
-        const manualUsers = 4550; 
-        const manualPaid   = 2000; 
+        const manualUsers = 5268; 
+        const manualPaid   = 2225; 
 
         function renderStats() {
             document.getElementById('displayUserCount').innerText = manualUsers.toLocaleString('az-AZ');
@@ -451,15 +466,15 @@
         const shareStatus = document.getElementById('shareStatus');
         const progressFill = document.getElementById('progressFill');
 
-        // Chat Variables
         const chatContainer = document.getElementById('chatContainer');
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn'); // Yeni ID
         let chatName = localStorage.getItem('chatName');
+        
+        let isChatOpen = true; // Çatın açıq/bağlı statusunu saxlayır
 
-        // Random Ad Generasiyası (ƏGƏR YOXDURSA)
         if (!chatName) {
-            // 100000 ilə 999999 arasında random rəqəm
             const randomNum = Math.floor(100000 + Math.random() * 900000);
             chatName = "user" + randomNum;
             localStorage.setItem('chatName', chatName);
@@ -474,6 +489,7 @@
             updateUI();
             checkVisit();
             initChat(); 
+            initChatStatusListener(); // Statusu izləməyə başla
         };
 
         function checkVisit() {
@@ -486,7 +502,7 @@
         }
 
         function handleClick() {
-            if (localBalance >= 5.00) return; // Əlavə qoruma
+            if (localBalance >= 5.00) return;
 
             localBalance += 0.05;
             localStorage.setItem('userBalance', localBalance.toFixed(2));
@@ -501,15 +517,13 @@
             balanceDisplay.textContent = localBalance.toFixed(2) + " ₼";
 
             if (localBalance >= 5.00) {
-                // Pul çıxar aktiv oldu
                 withdrawBtn.textContent = "Pulu Çıxar 💳";
                 withdrawBtn.classList.add('active');
                 withdrawBtn.disabled = false;
                 
-                // Oyunu dondur
                 clickBtn.disabled = true;
                 clickBtn.innerText = "Hədəfə\nÇatdınız! 🏁";
-                clickBtn.style.background = "#7f8c8d"; // Boz rəng
+                clickBtn.style.background = "#7f8c8d";
                 tapHint.innerText = "Balansı çıxarmaq üçün aşağıdakı düyməyə basın";
                 
             } else {
@@ -535,6 +549,7 @@
 
         function openYoutube() {
             window.open(youtubeUrl, '_blank');
+            incrementShare();
         }
 
         function shareTo(platform) {
@@ -560,8 +575,7 @@
 
                 if (shareCount === 20) {
                     setTimeout(() => {
-                        alert("Sorğunuz uğurla qeydə alındı!");
-                    }, 1000);
+                    }, 500);
                 }
             }
         }
@@ -572,37 +586,79 @@
             shareStatus.textContent = `${shareCount} / 20 Paylaşıldı`;
             
             if (shareCount >= 20) {
-                document.querySelectorAll('.share-btn').forEach(btn => {
-                    btn.textContent = "Təsdiqləndi ✅ Zəhmət olmasa bir qədər gözləyin. 24 saata qədər uzana bilər! Aktiv olmağa davam edin! Çatda insanlarla danışa bilərsiniz!";
-                    btn.style.opacity = "0.5";
-                    btn.disabled = true;
-                });
+                const shareContainer = document.querySelector('.share-buttons-container');
+                const modalInstructions = document.getElementById('modal-instructions');
+                
+                if(modalInstructions) modalInstructions.style.display = 'none';
+                shareStatus.style.display = 'none';
+
+                shareContainer.innerHTML = `
+                    <p style="
+                        color: #f39c12; 
+                        font-weight: 800; 
+                        font-size: 18px; 
+                        line-height: 1.5; 
+                        margin-top: 20px;
+                        text-shadow: 0px 0px 1px rgba(0,0,0,0.1);
+                    ">
+                        Təsdiqləndi ✅ Zəhmət olmasa dəvət edilən 20 şəxsin gəlməsini gözləyin. Çatda insanlarla danışa bilərsiniz!
+                    </p>
+                `;
             }
         }
-
-        // --- CHAT FUNCTIONS ---
-
+        
         function toggleChat() {
             if (chatContainer.style.display === "flex") {
                 chatContainer.style.display = "none";
             } else {
                 chatContainer.style.display = "flex";
-                // Artıq ad yoxlanışı burda lazım deyil, yüklənəndə yoxlanılır
                 scrollToBottom();
             }
         }
 
+        // Çatın açıq/bağlı olmasını yoxlayan funksiya
+        function initChatStatusListener() {
+            if(db) {
+                db.ref('stats/chat').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    // Firebase-də true deyilsə, deməli bağlıdır (false qəbul edirik)
+                    isChatOpen = (val === true);
+                    updateChatInputState();
+                });
+            }
+        }
+
+        function updateChatInputState() {
+            if (isChatOpen) {
+                // Çat açıqdır
+                chatInput.disabled = false;
+                chatInput.placeholder = "Mesaj yaz...";
+                chatSendBtn.disabled = false;
+                chatSendBtn.innerText = ">";
+                chatSendBtn.style.backgroundColor = "#2ecc71";
+            } else {
+                // Çat bağlıdır
+                chatInput.disabled = true;
+                chatInput.value = ""; // Yazılanı sil
+                chatInput.placeholder = "Çat hələlik bağlıdır";
+                chatSendBtn.disabled = true;
+                chatSendBtn.innerText = "🔒";
+                chatSendBtn.style.backgroundColor = "#95a5a6";
+            }
+        }
+
         function sendChatMessage() {
+            // Əgər çat bağlıdırsa, heçnə etmə
+            if (!isChatOpen) return;
+
             const msg = chatInput.value.trim();
             if (msg.length > 0 && chatName) {
                 if (db) {
-                    // Mesaj nömrəsini (ID) artırır
                     db.ref('stats/last_message_id').transaction((currentId) => {
                         return (currentId || 0) + 1;
                     }, (error, committed, snapshot) => {
                         if (committed) {
                             const newId = snapshot.val();
-                            // Yeni ID ilə mesajı yazır (1, 2, 3...)
                             db.ref('messages/' + newId).set({
                                 nickname: chatName,
                                 message: msg,
@@ -617,7 +673,6 @@
 
         function initChat() {
             if (db) {
-                // Son 50 mesajı yüklə
                 db.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
                     const data = snapshot.val();
                     if(data) {
@@ -631,7 +686,6 @@
             const div = document.createElement('div');
             const isMine = data.nickname === chatName;
             
-            // Vaxtı formatla (HH:MM)
             const date = new Date(data.timestamp);
             const hours = date.getHours().toString().padStart(2, '0');
             const minutes = date.getMinutes().toString().padStart(2, '0');
